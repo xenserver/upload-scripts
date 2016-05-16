@@ -101,8 +101,8 @@ let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
   in inner entries lrelpath irelpath
 
 let create_tree root binpkg_iso sources_iso =
-  let rpmsdir = Filename.concat root "RPMS" in
-  let srpmsdir = Filename.concat root "SRPMS" in
+  let rpmsdir = Filename.concat root "domain0/RPMS" in
+  let srpmsdir = Filename.concat root "domain0/SRPMS" in
   Block.connect binpkg_iso
   >>|= fun b ->
   Iso.connect b
@@ -220,10 +220,10 @@ let run root branch s3bin =
   create_tree root binpkg_iso sources_iso
   >>|= fun () ->
   Printf.printf "Running createrepo\n%!";
-  check (Lwt_unix.system (Printf.sprintf "createrepo %s" root))
+  check (Lwt_unix.system (Printf.sprintf "createrepo %s/domain0" root))
   >>|= fun _ ->
   Printf.printf "Running s3cmd sync\n%!";
-  check (Lwt_unix.system (Printf.sprintf "s3cmd sync %s %s" root s3bin))
+  check (Lwt_unix.system (Printf.sprintf "s3cmd sync --delete-removed %s %s" root s3bin))
   >>|= fun _ -> Lwt.return ok
 
 let _ =
