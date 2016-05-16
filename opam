@@ -1,0 +1,25 @@
+opam-version: "1.2"
+version: "1.0"
+maintainer: "jonathan.ludlam@citrix.com"
+authors: [ "Jonathan Ludlam" ]
+license: "LGPL-2 with OCaml linking exception"
+homepage: "https://github.com/jonludlam/various-scripts"
+dev-repo: "https://github.com/jonludlam/various-scripts.git"
+bug-reports: "https://github.com/jonludlam/various-scripts/issues"
+
+build: [
+  [make]
+]
+depends: [
+  "ocamlfind"
+  "mirage-block-unix"
+  "cstruct"
+  "lwt"
+  "sexplib"
+  "io-page"
+  "mirage"
+  "uri"
+  "iso-filesystem"
+]
+tags: [ "org:mirage" "org:xapi-project" ]
+available: [ ocaml-version >= "4.02.0" ]
