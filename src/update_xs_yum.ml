@@ -193,7 +193,7 @@ let get uri filename =
       Lwt.return ok
         
 
-let download_isos branch =
+let with_downloaded_isos branch f =
   let uri_base = Printf.sprintf
       "http://coltrane.uk.xensource.com/usr/groups/build/carbon/%s/xe-phase-3-latest/xe-phase-3"
       branch in
@@ -209,22 +209,27 @@ let download_isos branch =
   Printf.printf "Downloading source.iso\n%!";
   get sources_uri sources_fname
   >>|= fun () ->
-
-  Lwt.return (`Ok (binpkg_fname, sources_fname))
+  f (binpkg_fname, sources_fname)
+  >>= fun x ->
+  Lwt_unix.unlink binpkg_fname
+  >>= fun () -> 
+  Lwt_unix.unlink sources_fname
+  >>= fun () ->
+  Lwt.return x
   
                                        
 let run root branch s3bin =
-  download_isos branch
-  >>|= fun (binpkg_iso, sources_iso) ->
-  Printf.printf "Running createtree\n%!";
-  create_tree root binpkg_iso sources_iso
-  >>|= fun () ->
-  Printf.printf "Running createrepo\n%!";
-  check (Lwt_unix.system (Printf.sprintf "createrepo %s/domain0" root))
-  >>|= fun _ ->
-  Printf.printf "Running s3cmd sync\n%!";
-  check (Lwt_unix.system (Printf.sprintf "s3cmd sync --delete-removed %s %s" root s3bin))
-  >>|= fun _ -> Lwt.return ok
+  with_downloaded_isos branch 
+    (fun (binpkg_iso, sources_iso) ->
+      Printf.printf "Running createtree\n%!";
+      create_tree root binpkg_iso sources_iso
+      >>|= fun () ->
+      Printf.printf "Running createrepo\n%!";
+      check (Lwt_unix.system (Printf.sprintf "createrepo %s/domain0" root))
+      >>|= fun _ ->
+      Printf.printf "Running s3cmd sync\n%!";
+      check (Lwt_unix.system (Printf.sprintf "s3cmd sync --delete-removed %s %s" root s3bin))
+      >>|= fun _ -> Lwt.return ok)
 
 let _ =
   Lwt_main.run (run "449e52a4-271a-483a-baa7-24bf362866f7" "trunk-ring3" "s3://xs-yum-repos/")
