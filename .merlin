@@ -1,1 +1,1 @@
-PKG iso-filesystem lwt io-page.unix io-page mirage-block-unix astring cohttp sexplib
+PKG iso-filesystem lwt io-page.unix io-page mirage-block-unix astring cohttp sexplib lambdasoup

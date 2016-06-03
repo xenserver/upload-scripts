@@ -18,6 +18,8 @@
 open Lwt
 open Iso
 open Astring
+open Cohttp
+open Cohttp_lwt_unix
 
 module Iso = Isofs.Make(Block)(Io_page)
 
@@ -213,7 +215,6 @@ let with_downloaded_isos uri_base f =
   >>= fun () ->
   Lwt.return x
   
-                                       
 let run root branch s3bin =
   with_downloaded_isos branch 
     (fun (binpkg_iso, sources_iso) ->
@@ -227,14 +228,42 @@ let run root branch s3bin =
       check (Lwt_unix.system (Printf.sprintf "s3cmd sync --delete-removed %s %s" root s3bin))
       >>|= fun _ -> Lwt.return ok)
 
+let find_latest () =
+  Client.get (Uri.of_string "http://downloadns.citrix.com.edgesuite.net/8170/listing.html")
+  >>= fun (res,body) ->
+  let ok = 
+    if not (res |> Response.status |> Code.code_of_status |> Code.is_success)
+    then
+      (
+        Printf.fprintf stderr "Bad response: %s\n" (res |> Response.status |> Code.string_of_status);
+        Lwt.return (`Error `Bad_response)
+      )
+    else Lwt.return (`Ok ())
+  in
+  ok
+  >>|= fun () ->
+  (Cohttp_lwt_body.to_string body >>= fun s -> Lwt.return (`Ok s))
+  >>|= fun body ->
+  (try
+    let date =
+      Soup.(parse body $$ "p" |> to_list |> List.hd |> texts |> List.hd |> fun s -> String.sub s ~start:0 ~stop:10 |> String.Sub.to_string)
+    in
+    Lwt.return (`Ok date)
+  with e ->
+    Printf.fprintf stderr "Failed to parse body: %s\n" body;
+    Lwt.return (`Error `Bad_data))
+  >>|= fun date ->
+  Lwt.return (`Ok date)
+
 let _ =
   Lwt_main.run (
     run "449e52a4-271a-483a-baa7-24bf362866f7"
       "http://coltrane.uk.xensource.com/usr/groups/build/carbon/trunk-ring3/xe-phase-3-latest/xe-phase-3"
-      "s3://xs-yum-repos/"
-    >>|= fun () -> 
+      "s3://xs-yum-repos/" >>|= fun () ->
+    find_latest ()
+    >>|= fun s ->
     run "f51c9e97-9d3f-434c-b6f7-ec2a7526db92"
-      "http://downloadns.citrix.com.edgesuite.net/8170/"
+      (Printf.sprintf "http://downloadns.citrix.com.edgesuite.net/8170/%s" s)
       "s3://xs-yum-repos/"
-  )
+    )
     
