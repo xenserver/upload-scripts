@@ -257,12 +257,12 @@ let find_latest () =
 
 let _ =
   Lwt_main.run (
-    run "449e52a4-271a-483a-baa7-24bf362866f7"
+    run (String.concat ~sep:"-" ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
       "http://coltrane.uk.xensource.com/usr/groups/build/carbon/trunk-ring3/xe-phase-3-latest/xe-phase-3"
       "s3://xs-yum-repos/" >>|= fun () ->
     find_latest ()
     >>|= fun s ->
-    run "f51c9e97-9d3f-434c-b6f7-ec2a7526db92"
+    run (String.concat ~sep:"-" ["f51c9e97";"9d3f";"434c";"b6f7";"ec2a7526db92"])
       (Printf.sprintf "http://downloadns.citrix.com.edgesuite.net/8170/%s" s)
       "s3://xs-yum-repos/"
     )
