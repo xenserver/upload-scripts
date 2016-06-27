@@ -256,14 +256,22 @@ let find_latest () =
   Lwt.return (`Ok date)
 
 let _ =
+  let carbon   = "http://coltrane.uk.xensource.com/usr/groups/build/carbon" in
+  let uuid     = String.concat ~sep:"-" in
+  let (//) x y = x ^"/"^ y in
+
   Lwt_main.run (
-    run (String.concat ~sep:"-" ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
-      "http://coltrane.uk.xensource.com/usr/groups/build/carbon/trunk-ring3/xe-phase-3-latest/xe-phase-3"
+    run (uuid ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
+      (carbon // "trunk-ring3/xe-phase-3-latest/xe-phase-3")
       "s3://xs-yum-repos/" >>|= fun () ->
-    find_latest ()
-    >>|= fun s ->
-    run (String.concat ~sep:"-" ["f51c9e97";"9d3f";"434c";"b6f7";"ec2a7526db92"])
+
+    run (uuid ["8efb3ee";"3c7d";"11e6";"b95e";"33de9392ddf2"])
+      (carbon // "trunk-pvs-direct/xe-phase-3-latest/xe-phase-3/")
+      "s3://xs-yum-repos/" >>|= fun () ->
+
+    find_latest () >>|= fun s ->
+    run (uuid ["f51c9e97";"9d3f";"434c";"b6f7";"ec2a7526db92"])
       (Printf.sprintf "http://downloadns.citrix.com.edgesuite.net/8170/%s" s)
       "s3://xs-yum-repos/"
     )
-    
+
