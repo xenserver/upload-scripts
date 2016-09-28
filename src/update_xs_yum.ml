@@ -269,6 +269,10 @@ let _ =
       (carbon // "trunk-pvs-direct/xe-phase-3-latest/xe-phase-3/")
       "s3://xs-yum-repos/" >>|= fun () ->
 
+    run (uuid ["d8bc8edf";"e8c2";"4b6d";"b82f";"24d6742ea8bc"])
+      (carbon // "dundee-bugfix/xe-phase-3-latest/xe-phase-3/")
+      "s3://xs-yum-repos/" >>|= fun () ->
+
     find_latest () >>|= fun s ->
     run (uuid ["f51c9e97";"9d3f";"434c";"b6f7";"ec2a7526db92"])
       (Printf.sprintf "http://downloadns.citrix.com.edgesuite.net/8170/%s" s)
