@@ -265,7 +265,7 @@ let _ =
       (carbon // "trunk-ring3/xe-phase-3-latest/xe-phase-3")
       "s3://xs-yum-repos/" >>|= fun () ->
 
-    run (uuid ["8efb3ee";"3c7d";"11e6";"b95e";"33de9392ddf2"])
+    run (uuid ["9bcb8f28";"3d43";"11e6";"ac31";"0b94fe7a34b7"])
       (carbon // "trunk-pvs-direct/xe-phase-3-latest/xe-phase-3/")
       "s3://xs-yum-repos/" >>|= fun () ->
 
