@@ -61,8 +61,8 @@ let cstrs_to_file cstrs f =
   Lwt_unix.close fd
 
 let default_filtermap = function
-  | `D name -> Some name
-  | `F name -> Some name
+  | `Directory name -> Some name
+  | `File name -> Some name
 
 (* Sync an iso filesystem to a local filesystem. Optionally maps dir names and filenames *)
 let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
@@ -74,7 +74,7 @@ let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
          match f with
          | (name, Isofs.Directory d) ->
            acc >>*= fun () ->
-           (match filtermap (`D name) with
+           (match filtermap (`Directory name) with
             | Some name' ->
               mkdir_p (Filename.concat lrelpath name') 0o755
               >>|= fun () ->
@@ -86,7 +86,7 @@ let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
               Lwt.return ok)
          | (name, Isofs.File f) ->
            acc >>*= fun () ->
-           (match filtermap (`F name) with
+           (match filtermap (`File name) with
             | Some name' ->
               let ipath = Filename.concat irelpath name in
               Iso.KV_RO.size iso ipath
@@ -113,9 +113,9 @@ let create_tree root binpkg_iso sources_iso =
      directory *)
   sync ~filtermap:(
     function
-    | `D "repodata" -> None
-    | `D x -> Some x
-    | `F x -> Some x)
+    | `Directory "repodata" -> None
+    | `Directory x -> Some x
+    | `File x -> Some x)
     iso iso.Iso.entries rpmsdir "/"
   >>|= fun () ->
   Block.connect sources_iso
@@ -126,8 +126,8 @@ let create_tree root binpkg_iso sources_iso =
      hierarchy and skipping any file that doesn't look like an SRPM *)
   sync ~filtermap:(
     function
-    | `D x -> Some "/"
-    | `F x ->
+    | `Directory x -> Some "/"
+    | `File x ->
       if String.is_suffix ".src.rpm" x
       then Some x
       else None)
