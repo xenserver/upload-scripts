@@ -22,6 +22,7 @@ depends: [
   "uri"
   "iso-filesystem"
   "cohttp"
+  "re"
 ]
 tags: [ "org:mirage" "org:xapi-project" ]
 available: [ ocaml-version >= "4.02.0" ]
