@@ -225,6 +225,8 @@ let ok = `Ok ()
 
 let (>>|=) m f = m >>= fun x -> x >>*= f
 
+let (//) x y = x ^"/"^ y
+
 let mkdir_safe dir perm =
   Lwt.catch
     (fun () -> Lwt_unix.mkdir dir perm)
@@ -454,18 +456,31 @@ let find_latest () =
   >>|= fun date ->
   Lwt.return (`Ok date)
 
+let get_env_var var =
+  try Sys.getenv var
+  with Not_found -> failwith ("The " ^ var ^ " environment variable must be defined.")
+
+let get_last_successful_build () =
+  let url =
+    let path = "job/xenserver-specs/job/team%252Fring3%252Fmaster/api/json?tree=lastSuccessfulBuild[number]" in
+    (get_env_var "JENKINS_URL") // path
+  in
+  Cohttp_lwt_unix.Client.get (Uri.of_string url)
+  >>= fun (response, body) ->
+  Cohttp_lwt_body.to_string body
+  >|= fun body ->
+  let open Yojson.Basic in
+  from_string body |> Util.member "lastSuccessfulBuild" |> Util.member "number" |> to_string
+
 let _ =
-  let (//) x y = x ^"/"^ y in
   let carbon   = "http://coltrane.uk.xensource.com/usr/groups/build/carbon" in
-  let artifactory =
-    try (Sys.getenv "ARTIFACTORY_URL") // "xs-local-assembly/xenserver"
-    with Not_found -> failwith "An ARTIFACTORY_URL environment variable must be defined." in
-  let latest_succesful_build = "55" in
+  let artifactory = (get_env_var "ARTIFACTORY_URL") // "xs-local-assembly/xenserver" in
   let uuid     = String.concat ~sep:"-" in
 
   Lwt_main.run (
+    get_last_successful_build () >>= fun n ->
     run (uuid ["1337ab6c";"77ab";"9c8c";"a91f";"38fba8bee8dd"])
-      (artifactory // "team/ring3/master" // latest_succesful_build)
+      (artifactory // "team/ring3/master" // n )
       "s3://xs-yum-repos/" >>|= fun () ->
 
     run (uuid ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])

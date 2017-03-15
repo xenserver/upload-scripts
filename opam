@@ -23,6 +23,7 @@ depends: [
   "iso-filesystem"
   "cohttp"
   "re"
+  "yojson"
 ]
 tags: [ "org:mirage" "org:xapi-project" ]
 available: [ ocaml-version >= "4.02.0" ]
