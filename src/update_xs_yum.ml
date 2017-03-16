@@ -486,7 +486,7 @@ let _ =
       "s3://xs-yum-repos/" >>|= fun () ->
 
     run (uuid ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
-      (carbon // "trunk-ring3/xe-phase-3-latest/xe-phase-3")
+      (carbon // "ely/xe-phase-3-latest/xe-phase-3")
       "s3://xs-yum-repos/" >>|= fun () ->
 
     run (uuid ["9bcb8f28";"3d43";"11e6";"ac31";"0b94fe7a34b7"])
