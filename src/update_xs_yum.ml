@@ -429,8 +429,8 @@ let run root branch s3bin =
       check (Lwt_unix.system (Printf.sprintf "s3cmd sync --delete-removed %s %s" root s3bin))
       >>|= fun _ -> Lwt.return ok)
 
-let find_latest () =
-  Client.get (Uri.of_string "http://downloadns.citrix.com.edgesuite.net/8170/listing.html")
+let get_http_body url =
+  Client.get (Uri.of_string url)
   >>= fun (res,body) ->
   let ok = 
     if not (res |> Response.status |> Code.code_of_status |> Code.is_success)
@@ -444,6 +444,9 @@ let find_latest () =
   ok
   >>|= fun () ->
   (Cohttp_lwt_body.to_string body >>= fun s -> Lwt.return (`Ok s))
+
+let find_latest () =
+  get_http_body "http://downloadns.citrix.com.edgesuite.net/8170/listing.html"
   >>|= fun body ->
   (try
     let date =
@@ -465,12 +468,11 @@ let get_last_successful_build () =
     let path = "job/xenserver-specs/job/team%252Fring3%252Fmaster/api/json?tree=lastSuccessfulBuild[number]" in
     (get_env_var "JENKINS_URL") // path
   in
-  Cohttp_lwt_unix.Client.get (Uri.of_string url)
-  >>= fun (response, body) ->
-  Cohttp_lwt_body.to_string body
-  >|= fun body ->
+  get_http_body url
+  >>|= fun body ->
   let open Yojson.Basic in
   from_string body |> Util.member "lastSuccessfulBuild" |> Util.member "number" |> to_string
+  |> Lwt.return
 
 let _ =
   let carbon   = "http://coltrane.uk.xensource.com/usr/groups/build/carbon" in
