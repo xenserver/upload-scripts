@@ -25,5 +25,11 @@ depends: [
   "re"
   "yojson"
 ]
+depexts: [
+  [["ubuntu"] ["createrepo" "s3cmd"]]
+  [["centos"] ["createrepo" "s3cmd"]]
+  [["fedora"] ["createrepo" "s3cmd"]]
+  [["mageia"] ["createrepo" "s3cmd"]]
+]
 tags: [ "org:mirage" "org:xapi-project" ]
 available: [ ocaml-version >= "4.02.0" ]
