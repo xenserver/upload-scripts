@@ -26,6 +26,7 @@ depends: [
   "yojson"
 ]
 depexts: [
+  [["debian"] ["createrepo" "s3cmd"]]
   [["ubuntu"] ["createrepo" "s3cmd"]]
   [["centos"] ["createrepo" "s3cmd"]]
   [["fedora"] ["createrepo" "s3cmd"]]
