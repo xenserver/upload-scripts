@@ -3,7 +3,7 @@ FROM ocaml/opam:ubuntu
 RUN mkdir tmp/
 RUN mkdir tmp/src/
 
-COPY opam _tags Makefile tmp/
+COPY opam _tags Makefile update_xs_yum.install tmp/
 COPY src/update_xs_yum.ml tmp/src/
 
 WORKDIR tmp/
