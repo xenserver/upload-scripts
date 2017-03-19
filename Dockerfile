@@ -8,6 +8,8 @@ COPY src/update_xs_yum.ml tmp/src/
 
 WORKDIR tmp/
 
-RUN opam pin add update_xs_yum .
+RUN opam pin add --no-action update_xs_yum .
 
 RUN opam depext -y update_xs_yum
+
+RUN opam install -y update_xs_yum
