@@ -310,9 +310,11 @@ let filter_file file extension =
     let pkg_name = Re_str.replace_first (Re_str.regexp "^\\(.*\\)-[^-]*-[^-]*$") "\\1" pkg in
     List.mem pkg_name whitelist
   in
-  if String.is_suffix extension file && is_whitelisted file
-  then Some file
-  else None
+  if String.is_suffix extension file then begin
+    if is_whitelisted file
+    then Some file
+    else (Printf.printf "%s skipped due to whitelist.\n%!" file; None)
+  end else (Printf.printf "%s skipped due to wrong extension (not %s).\n%!" file extension; None)
 
 let create_tree root binpkg_iso sources_iso =
   let rpmsdir = Filename.concat root "domain0/RPMS" in
