@@ -21,6 +21,207 @@ open Astring
 open Cohttp
 open Cohttp_lwt_unix
 
+let whitelist = [
+    "blktap"
+  ; "blktap-devel"
+  ; "forkexecd"
+  ; "forkexecd-devel"
+  ; "gdk"
+  ; "gdk-devel"
+  ; "gpumon"
+  ; "message-switch"
+  ; "message-switch-devel"
+  ; "oasis"
+  ; "ocaml"
+  ; "ocaml-async"
+  ; "ocaml-async-devel"
+  ; "ocaml-async-extra"
+  ; "ocaml-async-extra-devel"
+  ; "ocaml-async-kernel"
+  ; "ocaml-async-kernel-devel"
+  ; "ocaml-async-rpc-kernel"
+  ; "ocaml-async-rpc-kernel-devel"
+  ; "ocaml-async-unix"
+  ; "ocaml-async-unix-devel"
+  ; "ocaml-backtrace"
+  ; "ocaml-backtrace-devel"
+  ; "ocaml-base64"
+  ; "ocaml-base64-devel"
+  ; "ocaml-biniou"
+  ; "ocaml-biniou-devel"
+  ; "ocaml-bin-prot"
+  ; "ocaml-bin-prot-devel"
+  ; "ocaml-bisect-ppx"
+  ; "ocaml-bisect-ppx-devel"
+  ; "ocaml-camlp4"
+  ; "ocaml-camlp4-devel"
+  ; "ocaml-cdrom"
+  ; "ocaml-cdrom-devel"
+  ; "ocaml-cmdliner"
+  ; "ocaml-cmdliner-devel"
+  ; "ocaml-cohttp"
+  ; "ocaml-cohttp-devel"
+  ; "ocaml-comparelib"
+  ; "ocaml-comparelib-devel"
+  ; "ocaml-compiler-libs"
+  ; "ocaml-conduit"
+  ; "ocaml-conduit-devel"
+  ; "ocaml-core"
+  ; "ocaml-core-devel"
+  ; "ocaml-core-kernel"
+  ; "ocaml-core-kernel-devel"
+  ; "ocaml-crc"
+  ; "ocaml-crc-devel"
+  ; "ocaml-cstruct"
+  ; "ocaml-cstruct-devel"
+  ; "ocaml-ctypes"
+  ; "ocaml-ctypes-devel"
+  ; "ocaml-custom-printf"
+  ; "ocaml-custom-printf-devel"
+  ; "ocaml-easy-format"
+  ; "ocaml-easy-format-devel"
+  ; "ocaml-enumerate"
+  ; "ocaml-enumerate-devel"
+  ; "ocaml-fd-send-recv"
+  ; "ocaml-fd-send-recv-devel"
+  ; "ocaml-fieldslib"
+  ; "ocaml-fieldslib-devel"
+  ; "ocaml-findlib"
+  ; "ocaml-findlib-devel"
+  ; "ocaml-gnt"
+  ; "ocaml-gnt-devel"
+  ; "ocaml-herelib"
+  ; "ocaml-herelib-devel"
+  ; "ocaml-inotify"
+  ; "ocaml-inotify-devel"
+  ; "ocaml-io-page"
+  ; "ocaml-io-page-devel"
+  ; "ocaml-ipaddr"
+  ; "ocaml-ipaddr-devel"
+  ; "ocaml-lwt"
+  ; "ocaml-lwt-devel"
+  ; "ocaml-mirage-profile"
+  ; "ocaml-mirage-profile-devel"
+  ; "ocaml-mirage-types"
+  ; "ocaml-mirage-types-devel"
+  ; "ocaml-nbd"
+  ; "ocaml-nbd-devel"
+  ; "ocaml-netdev"
+  ; "ocaml-netdev-devel"
+  ; "ocaml-netlink"
+  ; "ocaml-netlink-devel"
+  ; "ocaml-obuild"
+  ; "ocaml-ocamldoc"
+  ; "ocaml-oclock"
+  ; "ocaml-oclock-devel"
+  ; "ocaml-ocplib-endian"
+  ; "ocaml-ocplib-endian-devel"
+  ; "ocaml-odn"
+  ; "ocaml-opasswd"
+  ; "ocaml-opasswd-devel"
+  ; "ocaml-ounit"
+  ; "ocaml-ounit-devel"
+  ; "ocaml-pa-bench"
+  ; "ocaml-pa-bench-devel"
+  ; "ocaml-pa-ounit"
+  ; "ocaml-pa-ounit-devel"
+  ; "ocaml-pa-pipebang"
+  ; "ocaml-pa-pipebang-devel"
+  ; "ocaml-pa-structural-sexp"
+  ; "ocaml-pa-structural-sexp-devel"
+  ; "ocaml-pa-test"
+  ; "ocaml-pa-test-devel"
+  ; "ocaml-pci"
+  ; "ocaml-pci-devel"
+  ; "ocaml-qmp"
+  ; "ocaml-qmp-devel"
+  ; "ocaml-re"
+  ; "ocaml-react"
+  ; "ocaml-re-devel"
+  ; "ocaml-rpc"
+  ; "ocaml-rpc-devel"
+  ; "ocaml-rrdd-plugin"
+  ; "ocaml-rrdd-plugin-devel"
+  ; "ocaml-rrd-transport"
+  ; "ocaml-rrd-transport-devel"
+  ; "ocaml-runtime"
+  ; "ocaml-sexplib"
+  ; "ocaml-sexplib-devel"
+  ; "ocaml-sha"
+  ; "ocaml-sha-devel"
+  ; "ocaml-ssl"
+  ; "ocaml-ssl-devel"
+  ; "ocaml-stdext"
+  ; "ocaml-stdext-devel"
+  ; "ocaml-stringext"
+  ; "ocaml-stringext-devel"
+  ; "ocaml-systemd"
+  ; "ocaml-systemd-devel"
+  ; "ocaml-tapctl"
+  ; "ocaml-tapctl-devel"
+  ; "ocaml-tar"
+  ; "ocaml-tar-devel"
+  ; "ocaml-type-conv"
+  ; "ocaml-typerep"
+  ; "ocaml-typerep-devel"
+  ; "ocaml-uri"
+  ; "ocaml-uri-devel"
+  ; "ocaml-uuidm"
+  ; "ocaml-uuidm-devel"
+  ; "ocaml-uutf"
+  ; "ocaml-uutf-devel"
+  ; "ocaml-variantslib"
+  ; "ocaml-variantslib-devel"
+  ; "ocaml-vhd"
+  ; "ocaml-vhd-devel"
+  ; "ocaml-xcp-idl"
+  ; "ocaml-xcp-idl-devel"
+  ; "ocaml-xcp-inventory"
+  ; "ocaml-xcp-inventory-devel"
+  ; "ocaml-xcp-rrd"
+  ; "ocaml-xcp-rrd-devel"
+  ; "ocaml-xen-api-client"
+  ; "ocaml-xen-api-client-devel"
+  ; "ocaml-xen-api-libs-transitional"
+  ; "ocaml-xen-api-libs-transitional-devel"
+  ; "ocaml-xenops"
+  ; "ocaml-xenops-devel"
+  ; "ocaml-xenstore"
+  ; "ocaml-xenstore-clients"
+  ; "ocaml-xenstore-clients-devel"
+  ; "ocaml-xenstore-devel"
+  ; "ocaml-xmlm"
+  ; "ocaml-xmlm-devel"
+  ; "ocaml-yojson"
+  ; "ocaml-yojson-devel"
+  ; "omake"
+  ; "opam"
+  ; "optcomp"
+  ; "squeezed"
+  ; "systemd"
+  ; "systemd-devel"
+  ; "systemd-libs"
+  ; "vhd-tool"
+  ; "xapi"
+  ; "xapi-test-utils"
+  ; "xapi-test-utils-devel"
+  ; "xcp-networkd"
+  ; "xcp-rrdd"
+  ; "xen-devel"
+  ; "xen-dom0-libs"
+  ; "xen-dom0-libs-devel"
+  ; "xen-hypervisor"
+  ; "xen-installer-files"
+  ; "xen-libs"
+  ; "xen-libs-devel"
+  ; "xen-ocaml-devel"
+  ; "xen-ocaml-libs"
+  ; "xenops-cli"
+  ; "xenopsd"
+  ; "xenserver-release"
+  ; "xs-opam-repo"
+]
+
 module Iso = Isofs.Make(Block)(Io_page)
 
 exception Error
@@ -31,6 +232,8 @@ let (>>*=) m f = match m with
 let ok = `Ok ()
 
 let (>>|=) m f = m >>= fun x -> x >>*= f
+
+let (//) x y = x ^"/"^ y
 
 let mkdir_safe dir perm =
   Lwt.catch
@@ -61,8 +264,8 @@ let cstrs_to_file cstrs f =
   Lwt_unix.close fd
 
 let default_filtermap = function
-  | `D name -> Some name
-  | `F name -> Some name
+  | `Directory name -> Some name
+  | `File name -> Some name
 
 (* Sync an iso filesystem to a local filesystem. Optionally maps dir names and filenames *)
 let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
@@ -74,7 +277,7 @@ let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
          match f with
          | (name, Isofs.Directory d) ->
            acc >>*= fun () ->
-           (match filtermap (`D name) with
+           (match filtermap (`Directory name) with
             | Some name' ->
               mkdir_p (Filename.concat lrelpath name') 0o755
               >>|= fun () ->
@@ -86,7 +289,7 @@ let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
               Lwt.return ok)
          | (name, Isofs.File f) ->
            acc >>*= fun () ->
-           (match filtermap (`F name) with
+           (match filtermap (`File name) with
             | Some name' ->
               let ipath = Filename.concat irelpath name in
               Iso.KV_RO.size iso ipath
@@ -102,6 +305,17 @@ let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
       ) ok entries
   in inner entries lrelpath irelpath
 
+let filter_file file extension =
+  let is_whitelisted pkg =
+    let pkg_name = Re_str.replace_first (Re_str.regexp "^\\(.*\\)-[^-]*-[^-]*$") "\\1" pkg in
+    List.mem pkg_name whitelist
+  in
+  if String.is_suffix extension file then begin
+    if is_whitelisted file
+    then Some file
+    else (Printf.printf "%s skipped due to whitelist.\n%!" file; None)
+  end else (Printf.printf "%s skipped due to wrong extension (not %s).\n%!" file extension; None)
+
 let create_tree root binpkg_iso sources_iso =
   let rpmsdir = Filename.concat root "domain0/RPMS" in
   let srpmsdir = Filename.concat root "domain0/SRPMS" in
@@ -113,9 +327,9 @@ let create_tree root binpkg_iso sources_iso =
      directory *)
   sync ~filtermap:(
     function
-    | `D "repodata" -> None
-    | `D x -> Some x
-    | `F x -> Some x)
+    | `Directory "repodata" -> None
+    | `Directory x -> Some x
+    | `File x -> filter_file x ".rpm")
     iso iso.Iso.entries rpmsdir "/"
   >>|= fun () ->
   Block.connect sources_iso
@@ -126,11 +340,8 @@ let create_tree root binpkg_iso sources_iso =
      hierarchy and skipping any file that doesn't look like an SRPM *)
   sync ~filtermap:(
     function
-    | `D x -> Some "/"
-    | `F x ->
-      if String.is_suffix ".src.rpm" x
-      then Some x
-      else None)
+    | `Directory x -> Some "/"
+    | `File x -> filter_file x ".src.rpm")
     iso iso.Iso.entries srpmsdir "/"
   >>|= fun () ->
   Lwt.return ok
@@ -228,8 +439,8 @@ let run root branch s3bin =
       check (Lwt_unix.system (Printf.sprintf "s3cmd sync --delete-removed %s %s" root s3bin))
       >>|= fun _ -> Lwt.return ok)
 
-let find_latest () =
-  Client.get (Uri.of_string "http://downloadns.citrix.com.edgesuite.net/8170/listing.html")
+let get_http_body url =
+  Client.get (Uri.of_string url)
   >>= fun (res,body) ->
   let ok = 
     if not (res |> Response.status |> Code.code_of_status |> Code.is_success)
@@ -243,6 +454,9 @@ let find_latest () =
   ok
   >>|= fun () ->
   (Cohttp_lwt_body.to_string body >>= fun s -> Lwt.return (`Ok s))
+
+let find_latest () =
+  get_http_body "http://downloadns.citrix.com.edgesuite.net/8170/listing.html"
   >>|= fun body ->
   (try
     let date =
@@ -255,14 +469,34 @@ let find_latest () =
   >>|= fun date ->
   Lwt.return (`Ok date)
 
+let get_env_var var =
+  try Sys.getenv var
+  with Not_found -> failwith ("The " ^ var ^ " environment variable must be defined.")
+
+let get_last_successful_build () =
+  let url =
+    let path = "job/xenserver-specs/job/team%252Fring3%252Fmaster/api/json?tree=lastSuccessfulBuild[number]" in
+    (get_env_var "JENKINS_URL") // path
+  in
+  get_http_body url
+  >>|= fun body ->
+  let open Yojson.Basic in
+  from_string body |> Util.member "lastSuccessfulBuild" |> Util.member "number" |> to_string
+  |> Lwt.return
+
 let _ =
   let carbon   = "http://coltrane.uk.xensource.com/usr/groups/build/carbon" in
+  let artifactory = (get_env_var "ARTIFACTORY_URL") // "xs-local-assembly/xenserver" in
   let uuid     = String.concat ~sep:"-" in
-  let (//) x y = x ^"/"^ y in
 
   Lwt_main.run (
+    get_last_successful_build () >>= fun n ->
+    run (uuid ["1337ab6c";"77ab";"9c8c";"a91f";"38fba8bee8dd"])
+      (artifactory // "team/ring3/master" // n )
+      "s3://xs-yum-repos/" >>|= fun () ->
+
     run (uuid ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
-      (carbon // "trunk-ring3/xe-phase-3-latest/xe-phase-3")
+      (carbon // "ely/xe-phase-3-latest/xe-phase-3")
       "s3://xs-yum-repos/" >>|= fun () ->
 
     run (uuid ["9bcb8f28";"3d43";"11e6";"ac31";"0b94fe7a34b7"])
