@@ -1,0 +1,4 @@
+# ocamlbuild output directory
+/_build
+
+/update_xs_yum.native
