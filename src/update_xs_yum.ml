@@ -309,6 +309,7 @@ let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
 let filter_file file extension =
   let is_whitelisted pkg =
     let pkg_name = Re_str.replace_first (Re_str.regexp "^\\(.*\\)-[^-]*-[^-]*$") "\\1" pkg in
+    Printf.printf "Checking for package in whitelist: %s\n%!" pkg_name;
     List.mem pkg_name whitelist
   in
   if String.is_suffix extension file then begin
@@ -485,10 +486,16 @@ let get_last_successful_build () =
   from_string body |> Util.member "lastSuccessfulBuild" |> Util.member "number" |> to_string
   |> Lwt.return
 
+let print_whitelist () =
+  Printf.printf "Using whitelist:\n%!";
+  List.iter (fun x -> Printf.printf "%s\n%!" x) whitelist
+
 let _ =
   let carbon   = "http://coltrane.uk.xensource.com/usr/groups/build/carbon" in
   let artifactory = (get_env_var "ARTIFACTORY_URL") // "xs-local-assembly/xenserver" in
   let uuid     = String.concat ~sep:"-" in
+
+  print_whitelist ();
 
   Lwt_main.run (
     get_last_successful_build () >>= fun n ->
