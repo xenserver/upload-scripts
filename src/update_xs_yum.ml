@@ -218,6 +218,7 @@ let whitelist = [
   ; "xen-ocaml-libs"
   ; "xenops-cli"
   ; "xenopsd"
+  ; "xenopsd-devel"
   ; "xenserver-release"
   ; "xs-opam-repo"
 ]
