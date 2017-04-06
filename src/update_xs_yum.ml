@@ -475,9 +475,9 @@ let get_env_var var =
   try Sys.getenv var
   with Not_found -> failwith ("The " ^ var ^ " environment variable must be defined.")
 
-let get_last_successful_build () =
+let get_last_successful_build branch_path =
   let url =
-    let path = "job/xenserver-specs/job/team%252Fring3%252Fmaster/api/json?tree=lastSuccessfulBuild[number]" in
+    let path = "job/xenserver-specs/job/" ^ branch_path ^ "/api/json?tree=lastSuccessfulBuild[number]" in
     (get_env_var "JENKINS_URL") // path
   in
   get_http_body url
@@ -498,9 +498,14 @@ let _ =
   print_whitelist ();
 
   Lwt_main.run (
-    get_last_successful_build () >>= fun n ->
+    get_last_successful_build "team%252Fring3%252Fmaster" >>= fun n ->
     run (uuid ["1337ab6c";"77ab";"9c8c";"a91f";"38fba8bee8dd"])
       (artifactory // "team/ring3/master" // n )
+      "s3://xs-yum-repos/" >>|= fun () ->
+
+    get_last_successful_build "team%252Fring3%252Ffalcon" >>= fun n ->
+    run (uuid ["fa7c0ea9";"9d31";"50bb";"a8d6";"8ae367ef2f14"])
+      (artifactory // "team/ring3/falcon" // n ) 
       "s3://xs-yum-repos/" >>|= fun () ->
 
     run (uuid ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
