@@ -218,6 +218,7 @@ let whitelist = [
   ; "xen-ocaml-libs"
   ; "xenops-cli"
   ; "xenopsd"
+  ; "xenopsd-devel"
   ; "xenserver-release"
   ; "xs-opam-repo"
 ]
@@ -308,6 +309,7 @@ let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
 let filter_file file extension =
   let is_whitelisted pkg =
     let pkg_name = Re_str.replace_first (Re_str.regexp "^\\(.*\\)-[^-]*-[^-]*$") "\\1" pkg in
+    Printf.printf "Checking for package in whitelist: %s\n%!" pkg_name;
     List.mem pkg_name whitelist
   in
   if String.is_suffix extension file then begin
@@ -473,9 +475,9 @@ let get_env_var var =
   try Sys.getenv var
   with Not_found -> failwith ("The " ^ var ^ " environment variable must be defined.")
 
-let get_last_successful_build () =
+let get_last_successful_build branch_path =
   let url =
-    let path = "job/xenserver-specs/job/team%252Fring3%252Fmaster/api/json?tree=lastSuccessfulBuild[number]" in
+    let path = "job/xenserver-specs/job/" ^ branch_path ^ "/api/json?tree=lastSuccessfulBuild[number]" in
     (get_env_var "JENKINS_URL") // path
   in
   get_http_body url
@@ -484,32 +486,44 @@ let get_last_successful_build () =
   from_string body |> Util.member "lastSuccessfulBuild" |> Util.member "number" |> to_string
   |> Lwt.return
 
+let print_whitelist () =
+  Printf.printf "Using whitelist:\n%!";
+  List.iter (fun x -> Printf.printf "%s\n%!" x) whitelist
+
 let _ =
   let carbon   = "http://coltrane.uk.xensource.com/usr/groups/build/carbon" in
   let artifactory = (get_env_var "ARTIFACTORY_URL") // "xs-local-assembly/xenserver" in
   let uuid     = String.concat ~sep:"-" in
+  let s3bucket   = "s3://xapi-repos/" in
+
+  print_whitelist ();
 
   Lwt_main.run (
-    get_last_successful_build () >>= fun n ->
+    get_last_successful_build "team%252Fring3%252Fmaster" >>= fun n ->
     run (uuid ["1337ab6c";"77ab";"9c8c";"a91f";"38fba8bee8dd"])
       (artifactory // "team/ring3/master" // n )
-      "s3://xs-yum-repos/" >>|= fun () ->
+      s3bucket >>|= fun () ->
+
+    get_last_successful_build "team%252Fring3%252Ffalcon" >>= fun n ->
+    run (uuid ["fa7c0ea9";"9d31";"50bb";"a8d6";"8ae367ef2f14"])
+      (artifactory // "team/ring3/falcon" // n ) 
+      s3bucket >>|= fun () ->
 
     run (uuid ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
       (carbon // "ely/xe-phase-3-latest/xe-phase-3")
-      "s3://xs-yum-repos/" >>|= fun () ->
+      s3bucket >>|= fun () ->
 
     run (uuid ["9bcb8f28";"3d43";"11e6";"ac31";"0b94fe7a34b7"])
       (carbon // "trunk-pvs-direct/xe-phase-3-latest/xe-phase-3/")
-      "s3://xs-yum-repos/" >>|= fun () ->
+      s3bucket >>|= fun () ->
 
     run (uuid ["d8bc8edf";"e8c2";"4b6d";"b82f";"24d6742ea8bc"])
       (carbon // "dundee-bugfix/xe-phase-3-latest/xe-phase-3/")
-      "s3://xs-yum-repos/" >>|= fun () ->
+      s3bucket >>|= fun () ->
 
     find_latest () >>|= fun s ->
     run (uuid ["f51c9e97";"9d3f";"434c";"b6f7";"ec2a7526db92"])
       (Printf.sprintf "http://downloadns.citrix.com.edgesuite.net/8170/%s" s)
-      "s3://xs-yum-repos/"
+      s3bucket
     )
 
