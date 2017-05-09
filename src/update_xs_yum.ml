@@ -514,17 +514,8 @@ let _ =
       (carbon // "ely/xe-phase-3-latest/xe-phase-3") "source.iso"
       s3bucket >>|= fun () ->
 
-    run (uuid ["9bcb8f28";"3d43";"11e6";"ac31";"0b94fe7a34b7"])
-      (carbon // "trunk-pvs-direct/xe-phase-3-latest/xe-phase-3") "source.iso"
-      s3bucket >>|= fun () ->
-
     run (uuid ["d8bc8edf";"e8c2";"4b6d";"b82f";"24d6742ea8bc"])
       (carbon // "dundee-bugfix/xe-phase-3-latest/xe-phase-3") "source.iso"
-      s3bucket >>|= fun () ->
-
-    find_latest () >>|= fun s ->
-    run (uuid ["f51c9e97";"9d3f";"434c";"b6f7";"ec2a7526db92"])
-      (Printf.sprintf "http://downloadns.citrix.com.edgesuite.net/8170/%s" s) "source.iso"
       s3bucket
     )
 
