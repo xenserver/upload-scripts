@@ -388,7 +388,8 @@ let get uri filename =
                let percent = (100 * !so_far) / i in
                if !last_percentage <> percent then begin
                  if percent mod 10 = 0 then
-                   Printf.printf "%d%%%!" percent
+                   Printf.printf "%d%%%!" percent;
+                   if percent = 100 then Printf.printf "\n%!"
                  else
                    Printf.printf ".%!";
                  last_percentage := percent
@@ -414,10 +415,10 @@ let with_downloaded_isos uri_base source_iso f =
   let sources_uri = Printf.sprintf "%s/%s" uri_base source_iso in
   let sources_fname = Filename.temp_file "source" "iso" in
 
-  Printf.printf "Downloading binpkg.iso\n%!";
+  Printf.printf "Downloading %s\n%!" binpkg_uri;
   get binpkg_uri binpkg_fname
   >>|= fun () ->
-  Printf.printf "Downloading %s\n%!" source_iso;
+  Printf.printf "Downloading %s\n%!" sources_uri;
   get sources_uri sources_fname
   >>|= fun () ->
   f (binpkg_fname, sources_fname)
@@ -514,11 +515,11 @@ let _ =
       s3bucket >>|= fun () ->
 
     run (uuid ["9bcb8f28";"3d43";"11e6";"ac31";"0b94fe7a34b7"])
-      (carbon // "trunk-pvs-direct/xe-phase-3-latest/xe-phase-3/") "source.iso"
+      (carbon // "trunk-pvs-direct/xe-phase-3-latest/xe-phase-3") "source.iso"
       s3bucket >>|= fun () ->
 
     run (uuid ["d8bc8edf";"e8c2";"4b6d";"b82f";"24d6742ea8bc"])
-      (carbon // "dundee-bugfix/xe-phase-3-latest/xe-phase-3/") "source.iso"
+      (carbon // "dundee-bugfix/xe-phase-3-latest/xe-phase-3") "source.iso"
       s3bucket >>|= fun () ->
 
     find_latest () >>|= fun s ->
