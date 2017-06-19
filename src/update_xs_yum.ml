@@ -505,9 +505,9 @@ let _ =
       (artifactory // "team/ring3/master" // n ) "source-retail.iso"
       s3bucket >>|= fun () ->
 
-    get_last_successful_build "team%252Fring3%252Ffalcon" >>= fun n ->
+    get_last_successful_build "release%252Ffalcon%252Flcm" >>= fun n ->
     run (uuid ["fa7c0ea9";"9d31";"50bb";"a8d6";"8ae367ef2f14"])
-      (artifactory // "team/ring3/falcon" // n ) "source-retail.iso"
+      (artifactory // "release/falcon/lcm" // n ) "source-retail.iso"
       s3bucket >>|= fun () ->
 
     run (uuid ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
