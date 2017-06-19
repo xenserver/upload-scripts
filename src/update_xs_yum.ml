@@ -510,6 +510,11 @@ let _ =
       (artifactory // "release/falcon/lcm" // n ) "source-retail.iso"
       s3bucket >>|= fun () ->
 
+    get_last_successful_build "feature%252FCBT" >>= fun n ->
+    run (uuid ["fea762e7";"cb70";"4be9";"ef86";"43ae89f91cd2"])
+      (artifactory // "feature/CBT" // n ) "source-retail.iso"
+      s3bucket >>|= fun () ->
+
     run (uuid ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
       (carbon // "ely/xe-phase-3-latest/xe-phase-3") "source.iso"
       s3bucket >>|= fun () ->
