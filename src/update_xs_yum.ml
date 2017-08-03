@@ -197,6 +197,7 @@ let whitelist = [
   ; "omake"
   ; "opam"
   ; "optcomp"
+  ; "rrdd-plugins"
   ; "squeezed"
   ; "systemd"
   ; "systemd-devel"
