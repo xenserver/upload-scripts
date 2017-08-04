@@ -9,7 +9,7 @@
 set -e
 
 # update this list to support all the packages for which we will use Travis CI
-SOURCES="xapi.src xenopsd.src xcp-networkd.src forkexecd.src xcp-rrdd.src squeezed.src vhd-tool.src xenops-cli.src gpumon.src" 
+SOURCES="xapi.src xenopsd.src xcp-networkd.src forkexecd.src xcp-rrdd.src squeezed.src vhd-tool.src xenops-cli.src gpumon.src rrdd-plugins.src"
 PACKAGES=`echo $SOURCES | sed 's/\.src//g'`
 
 # get the dependencies, excluding upstream ones, as those can be obtained directly and shouldn't need uploading
