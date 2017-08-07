@@ -477,7 +477,8 @@ let get_env_var var =
   try Sys.getenv var
   with Not_found -> failwith ("The " ^ var ^ " environment variable must be defined.")
 
-let get_last_successful_build branch_path =
+let get_last_successful_build branch =
+  let branch_path = Re_str.global_replace (Re_str.regexp "/") "%252F" branch in
   let url =
     let path = "job/xenserver-specs/job/" ^ branch_path ^ "/api/json?tree=lastSuccessfulBuild[number]" in
     (get_env_var "JENKINS_URL") // path
@@ -485,12 +486,27 @@ let get_last_successful_build branch_path =
   get_http_body url
   >>|= fun body ->
   let open Yojson.Basic in
-  from_string body |> Util.member "lastSuccessfulBuild" |> Util.member "number" |> to_string
-  |> Lwt.return
+  Lwt.catch
+    (fun () ->
+      `Ok (from_string body
+          |> Util.member "lastSuccessfulBuild"
+          |> Util.member "number"
+          |> to_string)
+      |> Lwt.return)
+    (fun exn ->
+      let msg = Printf.sprintf "Error: Getting latest build number failed for branch %s: %s\n%!" branch (Printexc.to_string exn) in
+      Lwt_io.eprintl msg >>= fun () ->
+      `Error msg |> Lwt.return)
 
 let print_whitelist () =
   Printf.printf "Using whitelist:\n%!";
   List.iter (fun x -> Printf.printf "%s\n%!" x) whitelist
+
+let best_effort_upload branch f =
+  Lwt.catch
+    (fun () -> f () >>|= fun () -> Lwt.return_unit)
+    (fun exn ->
+      Lwt_io.eprintlf "Error: Failed to upload branch %s: %s" branch (Printexc.to_string exn))
 
 let _ =
   let carbon   = "http://coltrane.uk.xensource.com/usr/groups/build/carbon" in
@@ -501,27 +517,38 @@ let _ =
   print_whitelist ();
 
   Lwt_main.run (
-    get_last_successful_build "team%252Fring3%252Fmaster" >>= fun n ->
-    run (uuid ["1337ab6c";"77ab";"9c8c";"a91f";"38fba8bee8dd"])
-      (artifactory // "team/ring3/master" // n ) "source-retail.iso"
-      s3bucket >>|= fun () ->
 
-    get_last_successful_build "release%252Ffalcon%252Flcm" >>= fun n ->
-    run (uuid ["fa7c0ea9";"9d31";"50bb";"a8d6";"8ae367ef2f14"])
-      (artifactory // "release/falcon/lcm" // n ) "source-retail.iso"
-      s3bucket >>|= fun () ->
+    let branch = "team/ring3/master" in
+    best_effort_upload branch
+      (fun () -> get_last_successful_build branch >>|= fun n ->
+      run (uuid ["1337ab6c";"77ab";"9c8c";"a91f";"38fba8bee8dd"])
+        (artifactory // branch // n ) "source-retail.iso"
+        s3bucket) >>= fun () ->
 
-    get_last_successful_build "feature%252FCBT" >>= fun n ->
-    run (uuid ["fea762e7";"cb70";"4be9";"ef86";"43ae89f91cd2"])
-      (artifactory // "feature/CBT" // n ) "source-retail.iso"
-      s3bucket >>|= fun () ->
+    let branch = "release/falcon/lcm" in
+    best_effort_upload branch
+      (fun () -> get_last_successful_build branch >>|= fun n ->
+      run (uuid ["fa7c0ea9";"9d31";"50bb";"a8d6";"8ae367ef2f14"])
+        (artifactory // branch // n ) "source-retail.iso"
+        s3bucket) >>= fun () ->
 
-    run (uuid ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
-      (carbon // "ely/xe-phase-3-latest/xe-phase-3") "source.iso"
-      s3bucket >>|= fun () ->
+    let branch = "feature/CBT" in
+    best_effort_upload branch
+      (fun () -> get_last_successful_build branch >>|= fun n ->
+      run (uuid ["fea762e7";"cb70";"4be9";"ef86";"43ae89f91cd2"])
+        (artifactory // branch // n ) "source-retail.iso"
+        s3bucket) >>= fun () ->
 
-    run (uuid ["d8bc8edf";"e8c2";"4b6d";"b82f";"24d6742ea8bc"])
-      (carbon // "dundee-bugfix/xe-phase-3-latest/xe-phase-3") "source.iso"
-      s3bucket
+    let branch = "ely/xe-phase-3-latest/xe-phase-3" in
+    best_effort_upload branch
+      (fun () -> run (uuid ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
+        (carbon // branch) "source.iso"
+        s3bucket) >>= fun () ->
+
+    let branch = "dundee-bugfix/xe-phase-3-latest/xe-phase-3" in
+    best_effort_upload branch
+      (fun () -> run (uuid ["d8bc8edf";"e8c2";"4b6d";"b82f";"24d6742ea8bc"])
+        (carbon // branch) "source.iso"
+        s3bucket)
     )
 
