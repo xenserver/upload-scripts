@@ -1,5 +1,7 @@
 FROM ocaml/opam:ubuntu
 
+RUN sudo apt-get update
+
 RUN mkdir tmp/
 RUN mkdir tmp/src/
 
