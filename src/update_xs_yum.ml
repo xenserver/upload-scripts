@@ -525,6 +525,13 @@ let _ =
         (artifactory // branch // n ) "source-retail.iso"
         s3bucket) >>= fun () ->
 
+    let branch = "team/ring0/qemu-stable" in
+    best_effort_upload branch
+      (fun () -> get_last_successful_build branch >>|= fun n ->
+      run (uuid ["7ea37212";"9079";"e321";"57ab";"1e49eafc0dcf"])
+        (artifactory // branch // n ) "source-retail.iso"
+        s3bucket) >>= fun () ->
+
     let branch = "ely/xe-phase-3-latest/xe-phase-3" in
     best_effort_upload branch
       (fun () -> run (uuid ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
