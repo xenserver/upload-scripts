@@ -459,20 +459,6 @@ let get_http_body url =
   >>|= fun () ->
   (Cohttp_lwt_body.to_string body >>= fun s -> Lwt.return (`Ok s))
 
-let find_latest () =
-  get_http_body "http://downloadns.citrix.com.edgesuite.net/8170/listing.html"
-  >>|= fun body ->
-  (try
-    let date =
-      Soup.(parse body $$ "p" |> to_list |> List.hd |> texts |> List.hd |> fun s -> String.sub s ~start:0 ~stop:10 |> String.Sub.to_string)
-    in
-    Lwt.return (`Ok date)
-  with e ->
-    Printf.fprintf stderr "Failed to parse body: %s\n" body;
-    Lwt.return (`Error `Bad_data))
-  >>|= fun date ->
-  Lwt.return (`Ok date)
-
 let get_env_var var =
   try Sys.getenv var
   with Not_found -> failwith ("The " ^ var ^ " environment variable must be defined.")
@@ -536,6 +522,13 @@ let _ =
     best_effort_upload branch
       (fun () -> get_last_successful_build branch >>|= fun n ->
       run (uuid ["fea762e7";"cb70";"4be9";"ef86";"43ae89f91cd2"])
+        (artifactory // branch // n ) "source-retail.iso"
+        s3bucket) >>= fun () ->
+
+    let branch = "team/ring0/qemu-stable" in
+    best_effort_upload branch
+      (fun () -> get_last_successful_build branch >>|= fun n ->
+      run (uuid ["7ea37212";"9079";"e321";"57ab";"1e49eafc0dcf"])
         (artifactory // branch // n ) "source-retail.iso"
         s3bucket) >>= fun () ->
 
