@@ -226,14 +226,15 @@ let whitelist = [
 
 module Iso = Isofs.Make(Block)(Io_page)
 
-exception Error
-let (>>*=) m f = match m with
-  | `Error e -> fail Error
-  | `Ok x -> f x
+(** Convert error polymorphic variants returned by some libraries to Lwt exceptions. *)
+module Error_to_lwt_exn = struct
+  exception Error
+  let (>>*=) m f = match m with
+    | `Error e -> fail Error
+    | `Ok x -> f x
 
-let ok = `Ok ()
-
-let (>>|=) m f = m >>= fun x -> x >>*= f
+  let (>>|=) m f = m >>= fun x -> x >>*= f
+end
 
 let (//) x y = x ^"/"^ y
 
@@ -252,7 +253,7 @@ let mkdir_p dir perm =
      then p_mkdir p_name
      else Lwt.return ()) >>= fun () ->
     mkdir_safe dir perm in
- p_mkdir dir >>= fun () -> Lwt.return ok
+ p_mkdir dir
 
 (* Dump a list of cstructs into a file f *)
 let cstrs_to_file cstrs f =
@@ -272,27 +273,26 @@ let default_filtermap = function
 (* Sync an iso filesystem to a local filesystem. Optionally maps dir names and filenames *)
 let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
   mkdir_p lrelpath 0o755
-  >>|= fun () -> 
+  >>= fun () -> 
   let rec inner entries lrelpath irelpath = 
-    Lwt_list.fold_left_s
-      (fun acc f ->
+    Lwt_list.iter_s
+      (fun f ->
          match f with
          | (name, Isofs.Directory d) ->
-           acc >>*= fun () ->
            (match filtermap (`Directory name) with
             | Some name' ->
               mkdir_p (Filename.concat lrelpath name') 0o755
-              >>|= fun () ->
+              >>= fun () ->
               inner
                 d.Isofs.d_contents
                 (Filename.concat lrelpath name')
                 (Filename.concat irelpath name)
-            | None -> 
-              Lwt.return ok)
+            | None ->
+              Lwt.return_unit)
          | (name, Isofs.File f) ->
-           acc >>*= fun () ->
            (match filtermap (`File name) with
             | Some name' ->
+              let open Error_to_lwt_exn in
               let ipath = Filename.concat irelpath name in
               Iso.KV_RO.size iso ipath
               >>|= fun size ->
@@ -301,10 +301,10 @@ let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
               let filename = Filename.concat lrelpath name' in
               Printf.printf "%s\n" filename;
               cstrs_to_file result filename >>= fun () ->
-              Lwt.return ok
+              Lwt.return_unit
             | None ->
-              Lwt.return ok)
-      ) ok entries
+              Lwt.return_unit)
+      ) entries
   in inner entries lrelpath irelpath
 
 let filter_file file extension =
@@ -320,6 +320,7 @@ let filter_file file extension =
   end else (Printf.printf "%s skipped due to wrong extension (not %s).\n%!" file extension; None)
 
 let create_tree root binpkg_iso sources_iso =
+  let open Error_to_lwt_exn in
   let rpmsdir = Filename.concat root "domain0/RPMS" in
   let srpmsdir = Filename.concat root "domain0/SRPMS" in
   Block.connect binpkg_iso
@@ -334,7 +335,7 @@ let create_tree root binpkg_iso sources_iso =
     | `Directory x -> Some x
     | `File x -> filter_file x ".rpm")
     iso iso.Iso.entries rpmsdir "/"
-  >>|= fun () ->
+  >>= fun () ->
   Block.connect sources_iso
   >>|= fun b ->
   Iso.connect b
@@ -346,13 +347,15 @@ let create_tree root binpkg_iso sources_iso =
     | `Directory x -> Some "/"
     | `File x -> filter_file x ".src.rpm")
     iso iso.Iso.entries srpmsdir "/"
-  >>|= fun () ->
-  Lwt.return ok
 
-let check th =
-  th >>= function
-  | Lwt_unix.WEXITED x when x=0 -> Lwt.return ok
-  | _ -> Lwt.return (`Error `Bad)
+let check_command command =
+  (Lwt_unix.system command) >>= function
+  | Lwt_unix.WEXITED x when x=0 -> Lwt.return_unit
+  | _ -> Lwt.fail_with (Printf.sprintf "Command exited with non-zero status code: %s" command)
+
+let fail_with_log e =
+  Lwt_io.eprintl e >>= fun () ->
+  Lwt.fail_with e
 
 let get uri filename =
   let open Cohttp in
@@ -376,9 +379,9 @@ let get uri filename =
   in
   match Code.is_success (Code.code_of_status status) with
   | false ->
-    Printf.fprintf stderr "Got bad return code fetching \"%s\": %s"
-      uri (Code.string_of_status status);
-    exit 1
+    let error = Printf.sprintf "Got bad return code fetching \"%s\": %s"
+      uri (Code.string_of_status status) in
+    fail_with_log error
   | true ->
     Lwt_io.with_file ~mode:Lwt_io.output filename
       (fun chan -> Lwt_stream.iter_s
@@ -402,12 +405,12 @@ let get uri filename =
     | Some i ->
       if !so_far != i
       then begin
-        Printf.fprintf stderr "Receieved size <> content-length: (%d <> %d)\n%!" (!so_far) i;
-        exit 1
-      end;
-      Lwt.return ok
+        let error = Printf.sprintf "Receieved size <> content-length: (%d <> %d)\n%!" (!so_far) i in
+        fail_with_log error
+      end
+      else Lwt.return_unit
     | None ->
-      Lwt.return ok
+      Lwt.return_unit
         
 
 let with_downloaded_isos uri_base source_iso f =
@@ -418,10 +421,10 @@ let with_downloaded_isos uri_base source_iso f =
 
   Printf.printf "Downloading %s\n%!" binpkg_uri;
   get binpkg_uri binpkg_fname
-  >>|= fun () ->
+  >>= fun () ->
   Printf.printf "Downloading %s\n%!" sources_uri;
   get sources_uri sources_fname
-  >>|= fun () ->
+  >>= fun () ->
   f (binpkg_fname, sources_fname)
   >>= fun x ->
   Lwt_unix.unlink binpkg_fname
@@ -435,29 +438,24 @@ let run root branch source_iso s3bin =
     (fun (binpkg_iso, sources_iso) ->
       Printf.printf "Running createtree\n%!";
       create_tree root binpkg_iso sources_iso
-      >>|= fun () ->
+      >>= fun () ->
       Printf.printf "Running createrepo\n%!";
-      check (Lwt_unix.system (Printf.sprintf "createrepo %s/domain0" root))
-      >>|= fun _ ->
+      check_command (Printf.sprintf "createrepo %s/domain0" root)
+      >>= fun () ->
       Printf.printf "Running s3cmd sync\n%!";
-      check (Lwt_unix.system (Printf.sprintf "s3cmd sync --delete-removed %s %s" root s3bin))
-      >>|= fun _ -> Lwt.return ok)
+      check_command (Printf.sprintf "s3cmd sync --delete-removed %s %s" root s3bin))
 
 let get_http_body url =
   Client.get (Uri.of_string url)
   >>= fun (res,body) ->
-  let ok = 
-    if not (res |> Response.status |> Code.code_of_status |> Code.is_success)
-    then
-      (
-        Printf.fprintf stderr "Bad response: %s\n" (res |> Response.status |> Code.string_of_status);
-        Lwt.return (`Error `Bad_response)
-      )
-    else Lwt.return (`Ok ())
-  in
-  ok
-  >>|= fun () ->
-  (Cohttp_lwt_body.to_string body >>= fun s -> Lwt.return (`Ok s))
+  if not (res |> Response.status |> Code.code_of_status |> Code.is_success)
+  then begin
+    let error = Printf.sprintf "Bad response: %s\n" (res |> Response.status |> Code.string_of_status) in
+    fail_with_log error
+  end
+  else Lwt.return_unit
+  >>= fun () ->
+  (Cohttp_lwt_body.to_string body)
 
 let get_env_var var =
   try Sys.getenv var
@@ -470,28 +468,25 @@ let get_last_successful_build branch =
     (get_env_var "JENKINS_URL") // path
   in
   get_http_body url
-  >>|= fun body ->
+  >>= fun body ->
   let open Yojson.Basic in
   Lwt.catch
     (fun () ->
-      `Ok (from_string body
-          |> Util.member "lastSuccessfulBuild"
-          |> Util.member "number"
-          |> to_string)
-      |> Lwt.return)
+       from_string body
+       |> Util.member "lastSuccessfulBuild"
+       |> Util.member "number"
+       |> to_string
+       |> Lwt.return)
     (fun exn ->
-      let msg = Printf.sprintf "Error: Getting latest build number failed for branch %s: %s\n%!" branch (Printexc.to_string exn) in
-      Lwt_io.eprintl msg >>= fun () ->
-      `Error msg |> Lwt.return)
+       let msg = Printf.sprintf "Error: Getting latest build number failed for branch %s: %s\n%!" branch (Printexc.to_string exn) in
+       fail_with_log msg)
 
 let print_whitelist () =
   Printf.printf "Using whitelist:\n%!";
   List.iter (fun x -> Printf.printf "%s\n%!" x) whitelist
 
 let best_effort_upload branch f =
-  Lwt.catch
-    (fun () -> f () >>|= fun () -> Lwt.return_unit)
-    (fun exn ->
+  Lwt.catch f (fun exn ->
       Lwt_io.eprintlf "Error: Failed to upload branch %s: %s" branch (Printexc.to_string exn))
 
 let _ =
@@ -506,28 +501,28 @@ let _ =
 
     let branch = "team/ring3/master" in
     best_effort_upload branch
-      (fun () -> get_last_successful_build branch >>|= fun n ->
+      (fun () -> get_last_successful_build branch >>= fun n ->
       run (uuid ["1337ab6c";"77ab";"9c8c";"a91f";"38fba8bee8dd"])
         (artifactory // branch // n ) "source-retail.iso"
         s3bucket) >>= fun () ->
 
     let branch = "release/falcon/lcm" in
     best_effort_upload branch
-      (fun () -> get_last_successful_build branch >>|= fun n ->
+      (fun () -> get_last_successful_build branch >>= fun n ->
       run (uuid ["fa7c0ea9";"9d31";"50bb";"a8d6";"8ae367ef2f14"])
         (artifactory // branch // n ) "source-retail.iso"
         s3bucket) >>= fun () ->
 
     let branch = "feature/CBT" in
     best_effort_upload branch
-      (fun () -> get_last_successful_build branch >>|= fun n ->
+      (fun () -> get_last_successful_build branch >>= fun n ->
       run (uuid ["fea762e7";"cb70";"4be9";"ef86";"43ae89f91cd2"])
         (artifactory // branch // n ) "source-retail.iso"
         s3bucket) >>= fun () ->
 
     let branch = "team/ring0/qemu-stable" in
     best_effort_upload branch
-      (fun () -> get_last_successful_build branch >>|= fun n ->
+      (fun () -> get_last_successful_build branch >>= fun n ->
       run (uuid ["7ea37212";"9079";"e321";"57ab";"1e49eafc0dcf"])
         (artifactory // branch // n ) "source-retail.iso"
         s3bucket) >>= fun () ->
