@@ -527,6 +527,13 @@ let _ =
         (artifactory // branch // n ) "source-retail.iso"
         s3bucket) >>= fun () ->
 
+    let branch = "feature/vgpu-migration/emu-manager" in
+    best_effort_upload branch
+      (fun () -> get_last_successful_build branch >>= fun n ->
+      run (uuid ["a6211961";"8dad";"43b7";"8ae3";"b944c217914a"])
+        (artifactory // branch // n ) "source-retail.iso"
+        s3bucket) >>= fun () ->
+
     let branch = "ely/xe-phase-3-latest/xe-phase-3" in
     best_effort_upload branch
       (fun () -> run (uuid ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
