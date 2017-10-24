@@ -28,6 +28,8 @@ let whitelist = [
   ; "forkexecd-devel"
   ; "gdk"
   ; "gdk-devel"
+  ; "gmp"
+  ; "gmp-devel"
   ; "gpumon"
   ; "message-switch"
   ; "message-switch-devel"
@@ -224,6 +226,21 @@ let whitelist = [
   ; "xs-opam-repo"
 ]
 
+let get_env_var var =
+  try Sys.getenv var
+  with Not_found -> failwith ("The " ^ var ^ " environment variable must be defined.")
+
+let (//) x y = x ^"/"^ y
+
+let carbon   = "http://coltrane.uk.xensource.com/usr/groups/build/carbon"
+let artifactory_url = (get_env_var "ARTIFACTORY_URL")
+let artifactory =  artifactory_url // "xs-local-assembly/xenserver"
+let s3bucket   = "s3://xapi-repos/"
+
+let fail_with_log e =
+  Lwt_io.eprintl e >>= fun () ->
+  Lwt.fail_with e
+
 module Iso = Isofs.Make(Block)(Io_page)
 
 (** Convert error polymorphic variants returned by some libraries to Lwt exceptions. *)
@@ -235,8 +252,6 @@ module Error_to_lwt_exn = struct
 
   let (>>|=) m f = m >>= fun x -> x >>*= f
 end
-
-let (//) x y = x ^"/"^ y
 
 let mkdir_safe dir perm =
   Lwt.catch
@@ -307,56 +322,6 @@ let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
       ) entries
   in inner entries lrelpath irelpath
 
-let filter_file file extension =
-  let is_whitelisted pkg =
-    let pkg_name = Re_str.replace_first (Re_str.regexp "^\\(.*\\)-[^-]*-[^-]*$") "\\1" pkg in
-    Printf.printf "Checking for package in whitelist: %s\n%!" pkg_name;
-    List.mem pkg_name whitelist
-  in
-  if String.is_suffix extension file then begin
-    if is_whitelisted file
-    then Some file
-    else (Printf.printf "%s skipped due to whitelist.\n%!" file; None)
-  end else (Printf.printf "%s skipped due to wrong extension (not %s).\n%!" file extension; None)
-
-let create_tree root binpkg_iso sources_iso =
-  let open Error_to_lwt_exn in
-  let rpmsdir = Filename.concat root "domain0/RPMS" in
-  let srpmsdir = Filename.concat root "domain0/SRPMS" in
-  Block.connect binpkg_iso
-  >>|= fun b ->
-  Iso.connect b
-  >>|= fun iso ->
-  (* Sync binpkg.iso to RPMS dir locally, skipping the 'repodata'
-     directory *)
-  sync ~filtermap:(
-    function
-    | `Directory "repodata" -> None
-    | `Directory x -> Some x
-    | `File x -> filter_file x ".rpm")
-    iso iso.Iso.entries rpmsdir "/"
-  >>= fun () ->
-  Block.connect sources_iso
-  >>|= fun b ->
-  Iso.connect b
-  >>|= fun iso ->
-  (* Sync sources.iso to SRPMS dir locally, flattening the dir
-     hierarchy and skipping any file that doesn't look like an SRPM *)
-  sync ~filtermap:(
-    function
-    | `Directory x -> Some "/"
-    | `File x -> filter_file x ".src.rpm")
-    iso iso.Iso.entries srpmsdir "/"
-
-let check_command command =
-  (Lwt_unix.system command) >>= function
-  | Lwt_unix.WEXITED x when x=0 -> Lwt.return_unit
-  | _ -> Lwt.fail_with (Printf.sprintf "Command exited with non-zero status code: %s" command)
-
-let fail_with_log e =
-  Lwt_io.eprintl e >>= fun () ->
-  Lwt.fail_with e
-
 let get uri filename =
   let open Cohttp in
   let open Cohttp_lwt_unix in
@@ -411,7 +376,70 @@ let get uri filename =
       else Lwt.return_unit
     | None ->
       Lwt.return_unit
-        
+
+let filter_file file extension =
+  let is_whitelisted pkg =
+    let pkg_name = Re_str.replace_first (Re_str.regexp "^\\(.*\\)-[^-]*-[^-]*$") "\\1" pkg in
+    Printf.printf "Checking for package in whitelist: %s\n%!" pkg_name;
+    List.mem pkg_name whitelist
+  in
+  if String.is_suffix extension file then begin
+    if is_whitelisted file
+    then Some file
+    else (Printf.printf "%s skipped due to whitelist.\n%!" file; None)
+  end else (Printf.printf "%s skipped due to wrong extension (not %s).\n%!" file extension; None)
+
+let download_centos_packages dir =
+  Lwt_io.printl "Downloading extra CentOS packages" >>= fun () ->
+  let download_url = artifactory_url // "xs-local-yum-centos-transformer/7.2.1511.20160408/os/x86_64/Packages" in
+  let packages = ["gmp-devel-6.0.0-11"] in
+  Lwt_list.iter_p
+    (fun package ->
+       Lwt_io.printlf "Processing package %s" package >>= fun () ->
+       let filename = package ^ ".el7.x86_64.rpm" in
+       match filter_file filename ".rpm" with
+       | Some _ ->
+         Lwt_io.printlf "Downloading package %s" filename >>= fun () ->
+         get (download_url // filename) (dir // filename)
+       | None -> Lwt.return_unit
+    )
+    packages
+
+let create_tree root binpkg_iso sources_iso =
+  let open Error_to_lwt_exn in
+  let rpmsdir = Filename.concat root "domain0/RPMS" in
+  let srpmsdir = Filename.concat root "domain0/SRPMS" in
+  Block.connect binpkg_iso
+  >>|= fun b ->
+  Iso.connect b
+  >>|= fun iso ->
+  (* Sync binpkg.iso to RPMS dir locally, skipping the 'repodata'
+     directory *)
+  sync ~filtermap:(
+    function
+    | `Directory "repodata" -> None
+    | `Directory x -> Some x
+    | `File x -> filter_file x ".rpm")
+    iso iso.Iso.entries rpmsdir "/"
+  >>= fun () ->
+  download_centos_packages (rpmsdir // "x86_64")
+  >>= fun () ->
+  Block.connect sources_iso
+  >>|= fun b ->
+  Iso.connect b
+  >>|= fun iso ->
+  (* Sync sources.iso to SRPMS dir locally, flattening the dir
+     hierarchy and skipping any file that doesn't look like an SRPM *)
+  sync ~filtermap:(
+    function
+    | `Directory x -> Some "/"
+    | `File x -> filter_file x ".src.rpm")
+    iso iso.Iso.entries srpmsdir "/"
+
+let check_command command =
+  (Lwt_unix.system command) >>= function
+  | Lwt_unix.WEXITED x when x=0 -> Lwt.return_unit
+  | _ -> Lwt.fail_with (Printf.sprintf "Command exited with non-zero status code: %s" command)
 
 let with_downloaded_isos uri_base source_iso f =
   let binpkg_uri = Printf.sprintf "%s/binpkg.iso" uri_base in
@@ -457,10 +485,6 @@ let get_http_body url =
   >>= fun () ->
   (Cohttp_lwt_body.to_string body)
 
-let get_env_var var =
-  try Sys.getenv var
-  with Not_found -> failwith ("The " ^ var ^ " environment variable must be defined.")
-
 let get_last_successful_build branch =
   let branch_path = Re_str.global_replace (Re_str.regexp "/") "%252F" branch in
   let url =
@@ -490,10 +514,7 @@ let best_effort_upload branch f =
       Lwt_io.eprintlf "Error: Failed to upload branch %s: %s" branch (Printexc.to_string exn))
 
 let _ =
-  let carbon   = "http://coltrane.uk.xensource.com/usr/groups/build/carbon" in
-  let artifactory = (get_env_var "ARTIFACTORY_URL") // "xs-local-assembly/xenserver" in
   let uuid     = String.concat ~sep:"-" in
-  let s3bucket   = "s3://xapi-repos/" in
 
   print_whitelist ();
 
