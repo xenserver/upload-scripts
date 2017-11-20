@@ -391,6 +391,7 @@ let filter_file file extension =
   end else (Printf.printf "%s skipped due to wrong extension (not %s).\n%!" file extension; None)
 
 let download_centos_packages dir =
+  mkdir_p dir 0o755 >>= fun () ->
   Lwt_io.printl "Downloading extra CentOS packages" >>= fun () ->
   let download_url = artifactory_url // "xs-local-yum-centos-transformer/7.2.1511.20160408/os/x86_64/Packages" in
   let packages = ["gmp-devel-6.0.0-11"] in
