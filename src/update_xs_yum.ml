@@ -551,7 +551,7 @@ let _ =
         (artifactory // branch // n ) "source-retail.iso"
         s3bucket) >>= fun () ->
 
-    let branch = "feature/vgpu-migration/emu-manager" in
+    let branch = "feature/vgpu-migration/master" in
     best_effort_upload branch
       (fun () -> get_last_successful_build branch >>= fun n ->
       run (uuid ["a6211961";"8dad";"43b7";"8ae3";"b944c217914a"])
