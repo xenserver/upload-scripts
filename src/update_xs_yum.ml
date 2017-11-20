@@ -323,6 +323,7 @@ let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
   in inner entries lrelpath irelpath
 
 let get uri filename =
+  Lwt_io.printlf "Downloading %s into %s" uri filename >>= fun () ->
   let open Cohttp in
   let open Cohttp_lwt_unix in
   let so_far = ref 0 in
@@ -474,6 +475,7 @@ let run root branch source_iso s3bin =
       check_command (Printf.sprintf "s3cmd sync --delete-removed %s %s" root s3bin))
 
 let get_http_body url =
+  Lwt_io.printlf "Getting %s" url >>= fun () ->
   Client.get (Uri.of_string url)
   >>= fun (res,body) ->
   if not (res |> Response.status |> Code.code_of_status |> Code.is_success)
