@@ -323,6 +323,7 @@ let sync ?(filtermap=default_filtermap) iso entries lrelpath irelpath =
   in inner entries lrelpath irelpath
 
 let get uri filename =
+  Lwt_io.printlf "Downloading %s into %s" uri filename >>= fun () ->
   let open Cohttp in
   let open Cohttp_lwt_unix in
   let so_far = ref 0 in
@@ -390,6 +391,7 @@ let filter_file file extension =
   end else (Printf.printf "%s skipped due to wrong extension (not %s).\n%!" file extension; None)
 
 let download_centos_packages dir =
+  mkdir_p dir 0o755 >>= fun () ->
   Lwt_io.printl "Downloading extra CentOS packages" >>= fun () ->
   let download_url = artifactory_url // "xs-local-yum-centos-transformer/7.2.1511.20160408/os/x86_64/Packages" in
   let packages = ["gmp-devel-6.0.0-11"] in
@@ -474,6 +476,7 @@ let run root branch source_iso s3bin =
       check_command (Printf.sprintf "s3cmd sync --delete-removed %s %s" root s3bin))
 
 let get_http_body url =
+  Lwt_io.printlf "Getting %s" url >>= fun () ->
   Client.get (Uri.of_string url)
   >>= fun (res,body) ->
   if not (res |> Response.status |> Code.code_of_status |> Code.is_success)
@@ -548,7 +551,7 @@ let _ =
         (artifactory // branch // n ) "source-retail.iso"
         s3bucket) >>= fun () ->
 
-    let branch = "feature/vgpu-migration/emu-manager" in
+    let branch = "feature/vgpu-migration/master" in
     best_effort_upload branch
       (fun () -> get_last_successful_build branch >>= fun n ->
       run (uuid ["a6211961";"8dad";"43b7";"8ae3";"b944c217914a"])
