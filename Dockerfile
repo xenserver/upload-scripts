@@ -1,4 +1,4 @@
-FROM ocaml/opam:debian
+FROM ocaml/opam:debian-stable_ocaml-4.04.2_flambda
 
 RUN sudo apt-get update
 
