@@ -206,6 +206,7 @@ let whitelist = [
   ; "systemd-libs"
   ; "vhd-tool"
   ; "xapi"
+  ; "xapi-client-devel"
   ; "xapi-test-utils"
   ; "xapi-test-utils-devel"
   ; "xcp-networkd"
