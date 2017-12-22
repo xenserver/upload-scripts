@@ -566,6 +566,13 @@ let _ =
         (artifactory // branch // n ) "source-retail.iso"
         s3bucket) >>= fun () ->
 
+    let branch = "feature/REQ477/master" in
+    best_effort_upload branch
+      (fun () -> get_last_successful_build branch >>= fun n ->
+        run (uuid ["fea762e7";"2e94";"7773";"a574";"24326ea876fd"])
+        (artifactory // branch // n ) "source-retail.iso"
+        s3bucket) >>= fun () ->
+
     let branch = "ely/xe-phase-3-latest/xe-phase-3" in
     best_effort_upload branch
       (fun () -> run (uuid ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
