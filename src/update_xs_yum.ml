@@ -531,17 +531,17 @@ let _ =
         (artifactory // branch // n ) "source-retail.iso"
         s3bucket) >>= fun () ->
 
+    let branch = "team/ring3/jura" in
+    best_effort_upload branch
+      (fun () -> get_last_successful_build branch >>= fun n ->
+      run (uuid ["7ea37212";"9377";"22ac";"ebdf";"54fea54b3422"])
+        (artifactory // branch // n ) "source-retail.iso"
+        s3bucket) >>= fun () ->
+
     let branch = "release/falcon/lcm" in
     best_effort_upload branch
       (fun () -> get_last_successful_build branch >>= fun n ->
       run (uuid ["fa7c0ea9";"9d31";"50bb";"a8d6";"8ae367ef2f14"])
-        (artifactory // branch // n ) "source-retail.iso"
-        s3bucket) >>= fun () ->
-
-    let branch = "feature/CBT" in
-    best_effort_upload branch
-      (fun () -> get_last_successful_build branch >>= fun n ->
-      run (uuid ["fea762e7";"cb70";"4be9";"ef86";"43ae89f91cd2"])
         (artifactory // branch // n ) "source-retail.iso"
         s3bucket) >>= fun () ->
 
