@@ -1,4 +1,4 @@
-FROM ocaml/opam:debian-stable_ocaml-4.04.2_flambda
+FROM ocaml/opam2:debian-9-ocaml-4.04
 
 RUN sudo apt-get update
 
@@ -20,9 +20,9 @@ WORKDIR /tmp
 # check the OPAM-related files for errors
 RUN opam lint
 
-RUN opam pin add --no-action update_xs_yum .
+RUN opam pin add -y --no-action update_xs_yum .
 
-RUN opam depext -y update_xs_yum
+RUN opam install -y opam-depext && opam depext -y update_xs_yum
 
 RUN opam install -y --deps-only update_xs_yum
 
