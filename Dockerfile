@@ -1,6 +1,6 @@
 FROM ocaml/opam2:debian-9-ocaml-4.04
 
-RUN sudo apt-get update
+RUN sudo apt-get update && sudo apt-get install -y createrepo s3cmd && sudo apt-get clean
 
 RUN mkdir tmp/
 RUN mkdir tmp/src/

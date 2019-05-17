@@ -521,6 +521,7 @@ let _ =
   let uuid     = String.concat ~sep:"-" in
 
   print_whitelist ();
+  let product = "xenserver" in
 
   Lwt_main.run (
 
@@ -528,82 +529,14 @@ let _ =
     best_effort_upload branch
       (fun () -> get_last_successful_build branch >>= fun n ->
       run (uuid ["1337ab6c";"77ab";"9c8c";"a91f";"38fba8bee8dd"])
-        (artifactory // branch // n ) "source-retail.iso"
-        s3bucket) >>= fun () ->
-
-    let branch = "team/ring3/jura" in
-    best_effort_upload branch
-      (fun () -> get_last_successful_build branch >>= fun n ->
-      run (uuid ["7ea37212";"9377";"22ac";"ebdf";"54fea54b3422"])
-        (artifactory // branch // n ) "source-retail.iso"
-        s3bucket) >>= fun () ->
-
-    let branch = "release/falcon/lcm" in
-    best_effort_upload branch
-      (fun () -> get_last_successful_build branch >>= fun n ->
-      run (uuid ["fa7c0ea9";"9d31";"50bb";"a8d6";"8ae367ef2f14"])
-        (artifactory // branch // n ) "source-retail.iso"
-        s3bucket) >>= fun () ->
-
-    let branch = "team/ring0/qemu-stable" in
-    best_effort_upload branch
-      (fun () -> get_last_successful_build branch >>= fun n ->
-      run (uuid ["7ea37212";"9079";"e321";"57ab";"1e49eafc0dcf"])
-        (artifactory // branch // n ) "source-retail.iso"
-        s3bucket) >>= fun () ->
-
-    let branch = "feature/vgpu-migration/master" in
-    best_effort_upload branch
-      (fun () -> get_last_successful_build branch >>= fun n ->
-      run (uuid ["a6211961";"8dad";"43b7";"8ae3";"b944c217914a"])
-        (artifactory // branch // n ) "source-retail.iso"
-        s3bucket) >>= fun () ->
-
-    let branch = "feature/usb-passthrough" in
-    best_effort_upload branch
-      (fun () -> get_last_successful_build branch >>= fun n ->
-        run (uuid ["005bba52";"7fb3";"9a2c";"d691";"a8b5b897cff3"])
-        (artifactory // branch // n ) "source-retail.iso"
-        s3bucket) >>= fun () ->
-
-    let branch = "feature/REQ477/master" in
-    best_effort_upload branch
-      (fun () -> get_last_successful_build branch >>= fun n ->
-        run (uuid ["fea762e7";"2e94";"7773";"a574";"24326ea876fd"])
-        (artifactory // branch // n ) "source-retail.iso"
+        (artifactory // branch // n // product) "source-retail.iso"
         s3bucket) >>= fun () ->
 
     let branch = "feature/guefi/master" in
     best_effort_upload branch
       (fun () -> get_last_successful_build branch >>= fun n ->
         run (uuid ["2b165bf9";"69c7";"4618";"91fa";"a2cea0535a50"])
-        (artifactory // branch // n ) "source-retail.iso"
+        (artifactory // branch // n // product) "source-retail.iso"
         s3bucket) >>= fun () ->
 
-    let branch = "feature/REQ-46/master" in
-    best_effort_upload branch
-      (fun () -> get_last_successful_build branch >>= fun n ->
-        run (uuid ["dbd994b9";"2e45";"4203";"8589";"73467c13c6e1"])
-        (artifactory // branch // n ) "source-retail.iso"
-        s3bucket) >>= fun () ->
-
-    let branch = "feature/REQ-503/master" in
-    best_effort_upload branch
-      (fun () -> get_last_successful_build branch >>= fun n ->
-        run (uuid ["fea762e7";"2e95";"0373";"a57e";"234eaf9bdcff"])
-        (artifactory // branch // n ) "source-retail.iso"
-        s3bucket) >>= fun () ->
-
-    let branch = "ely/xe-phase-3-latest/xe-phase-3" in
-    best_effort_upload branch
-      (fun () -> run (uuid ["449e52a4";"271a";"483a";"baa7";"24bf362866f7"])
-        (carbon // branch) "source.iso"
-        s3bucket) >>= fun () ->
-
-    let branch = "dundee-bugfix/xe-phase-3-latest/xe-phase-3" in
-    best_effort_upload branch
-      (fun () -> run (uuid ["d8bc8edf";"e8c2";"4b6d";"b82f";"24d6742ea8bc"])
-        (carbon // branch) "source.iso"
-        s3bucket)
-    )
-
+    Lwt.return_unit)
