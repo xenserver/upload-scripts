@@ -492,7 +492,7 @@ let get_http_body url =
 let get_last_successful_build branch =
   let branch_path = Re_str.global_replace (Re_str.regexp "/") "%252F" branch in
   let url =
-    let path = "job/xenserver-specs/job/" ^ branch_path ^ "/api/json?tree=lastSuccessfulBuild[number]" in
+    let path = "job/xenserver-build/job/" ^ branch_path ^ "/api/json?tree=lastSuccessfulBuild[number]" in
     (get_env_var "JENKINS_URL") // path
   in
   get_http_body url

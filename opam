@@ -1,11 +1,12 @@
-opam-version: "1.2"
+opam-version: "2.0"
 version: "1.0"
 maintainer: "jonathan.ludlam@citrix.com"
 authors: [ "Jonathan Ludlam" ]
 license: "LGPL-2 with OCaml linking exception"
 homepage: "https://github.com/jonludlam/various-scripts"
-dev-repo: "https://github.com/jonludlam/various-scripts.git"
+dev-repo: "git+https://github.com/jonludlam/various-scripts.git"
 bug-reports: "https://github.com/jonludlam/various-scripts/issues"
+synopsis: "Upload builds"
 
 build: [
   [make]
@@ -25,6 +26,7 @@ depends: [
   "ssl"
   "re"
   "yojson"
+  "ocaml" { >= "4.02.0" }
 ]
 depexts: [
   [["debian"] ["createrepo" "s3cmd"]]
@@ -34,4 +36,3 @@ depexts: [
   [["mageia"] ["createrepo" "s3cmd"]]
 ]
 tags: [ "org:mirage" "org:xapi-project" ]
-available: [ ocaml-version >= "4.02.0" ]
